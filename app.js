@@ -358,7 +358,7 @@ function addSubtaskInput(value = '', victoryCondition = 'S') {
 
   const input = document.createElement('input');
   input.type = 'text';
-  input.placeholder = '輸入子任務內容';
+  input.placeholder = '輸入出擊地點';
   input.value = value;
   input.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') { e.preventDefault(); addSubtaskInput(); }
@@ -496,7 +496,7 @@ function renderDropdown() {
   if (texts.length === 0) {
     const empty = document.createElement('li');
     empty.className = 'dropdown-empty';
-    empty.textContent = '無符合的子任務';
+    empty.textContent = '無符合的出擊地點';
     dropdown.appendChild(empty);
   } else {
     texts.forEach(text => {
