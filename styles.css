@@ -24,6 +24,39 @@ body {
   min-height: 100vh;
 }
 
+/* ── Update banner ── */
+#update-banner {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  background: var(--accent);
+  color: #fff;
+  padding: 10px 24px;
+  font-size: 18px;
+  font-weight: 500;
+  position: sticky;
+  top: 0;
+  z-index: 101;
+}
+
+#update-banner.visible { display: flex; }
+
+#update-btn {
+  background: #fff;
+  color: var(--accent);
+  border: none;
+  border-radius: 6px;
+  padding: 5px 16px;
+  font-size: 17px;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+#update-btn:hover { opacity: 0.85; }
+
 /* ── Header ── */
 header {
   background: var(--surface);

@@ -563,6 +563,31 @@ document.addEventListener('keydown', (e) => {
 // Initial render
 renderCards();
 
+// ── Service Worker ──
+if ('serviceWorker' in navigator) {
+  const updateBanner = document.getElementById('update-banner');
+  const updateBtn    = document.getElementById('update-btn');
+
+  navigator.serviceWorker.register('./sw.js').then(reg => {
+    reg.addEventListener('updatefound', () => {
+      const newSW = reg.installing;
+      newSW.addEventListener('statechange', () => {
+        if (newSW.state === 'installed' && navigator.serviceWorker.controller) {
+          updateBanner.classList.add('visible');
+        }
+      });
+    });
+  });
+
+  updateBtn.addEventListener('click', () => {
+    navigator.serviceWorker.ready.then(reg => {
+      if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+    });
+  });
+
+  navigator.serviceWorker.addEventListener('controllerchange', () => location.reload());
+}
+
 // Background check: trigger recurrence resets without requiring page refresh
 setInterval(() => {
   checkRecurringResets();
