@@ -8,6 +8,7 @@
   --accent-light: #EEF1FE;
   --accent2: #e68a00;
   --accent-light2: #ffe9bc;
+  --accent3: #00c0e6;
   --danger: #E05252;
   --border: #ffce8d;
   --shadow: 0 2px 12px rgba(0,0,0,0.08);
@@ -618,6 +619,47 @@ main {
 }
 
 .recurrence-group input[type="radio"] { display: none; }
+
+/* ── Yearly month picker ── */
+#yearly-month-picker {
+  display: none;
+  margin-top: 10px;
+  margin-bottom: 18px;
+}
+
+#yearly-month-picker.visible { display: block; }
+
+.yearly-month-group {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.yearly-month-group label {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 14px;
+  border-radius: 99px;
+  border: 1px solid var(--border);
+  font-size: 19px;
+  font-weight: 500;
+  cursor: pointer;
+  color: var(--secondary);
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.yearly-month-group label:hover {
+  border-color: var(--accent3);
+  color: var(--accent3);
+}
+
+.yearly-month-group label:has(input:checked) {
+  background: var(--accent3);
+  color: #fff;
+  border-color: var(--accent3);
+}
+
+.yearly-month-group input[type="radio"] { display: none; }
 
 /* ── Recurrence badge (Card) ── */
 .recurrence-badge {

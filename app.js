@@ -28,7 +28,7 @@ function asTaiwan(utcMs) {
   return new Date(utcMs + 8 * 3600 * 1000);
 }
 
-function getResetBoundaryUtc(recurrence) {
+function getResetBoundaryUtc(recurrence, yearlyMonth) {
   const nowUtc = Date.now();
   const tw = asTaiwan(nowUtc);
 
@@ -68,6 +68,14 @@ function getResetBoundaryUtc(recurrence) {
     if (twQ.getTime() > tw.getTime()) twQ.setUTCMonth(twQ.getUTCMonth() - 3);
     return twQ.getTime() - 8 * 3600 * 1000;
   }
+  if (recurrence === 'yearly') {
+    const twY = new Date(tw);
+    twY.setUTCMonth((yearlyMonth || 1) - 1);
+    twY.setUTCDate(1);
+    twY.setUTCHours(4, 0, 0, 0);
+    if (twY.getTime() > tw.getTime()) twY.setUTCFullYear(twY.getUTCFullYear() - 1);
+    return twY.getTime() - 8 * 3600 * 1000;
+  }
   return null;
 }
 
@@ -75,7 +83,7 @@ function checkRecurringResets() {
   let changed = false;
   todos.forEach(todo => {
     if (!todo.recurrence || todo.recurrence === 'none') return;
-    const boundary = getResetBoundaryUtc(todo.recurrence);
+    const boundary = getResetBoundaryUtc(todo.recurrence, todo.yearlyMonth);
     if (boundary === null) return;
     const lastReset = todo.lastResetAt ?? todo.createdAt;
     if (lastReset < boundary) {
@@ -110,9 +118,10 @@ function renderCards() {
   const groupWeekly    = todos.filter(rec('weekly'))   .sort(byCreated);
   const groupMonthly   = todos.filter(rec('monthly'))  .sort(byCreated);
   const groupQuarterly = todos.filter(rec('quarterly')).sort(byCreated);
-  const groupOther     = todos.filter(t => !isAllDone(t) && !['daily','weekly','monthly','quarterly'].includes(t.recurrence)).sort(byCreated);
+  const groupYearly    = todos.filter(rec('yearly'))   .sort(byCreated);
+  const groupOther     = todos.filter(t => !isAllDone(t) && !['daily','weekly','monthly','quarterly','yearly'].includes(t.recurrence)).sort(byCreated);
   const groupDone      = todos.filter(t =>  isAllDone(t)).sort(byCreated);
-  let sorted = [...groupDaily, ...groupWeekly, ...groupMonthly, ...groupQuarterly, ...groupOther, ...groupDone];
+  let sorted = [...groupDaily, ...groupWeekly, ...groupMonthly, ...groupQuarterly, ...groupYearly, ...groupOther, ...groupDone];
 
   if (selectedSubtasks.size > 0) {
     const matches = t => (t.subtasks || []).some(s => selectedSubtasks.has(s.text));
@@ -149,7 +158,9 @@ function createCardElement(todo) {
     const RMAP = { daily: '每日', weekly: '每週', monthly: '每月', quarterly: '每季' };
     const rbadge = document.createElement('span');
     rbadge.className = 'recurrence-badge';
-    rbadge.textContent = RMAP[todo.recurrence] || '';
+    rbadge.textContent = todo.recurrence === 'yearly'
+      ? `每年 ${todo.yearlyMonth || 1}月`
+      : (RMAP[todo.recurrence] || '');
     title.appendChild(rbadge);
   }
 
@@ -309,8 +320,16 @@ function openModal(todo = null) {
     todo.subtasks.forEach(sub => addSubtaskInput(sub.text, sub.victoryCondition || ''));
   }
 
+  const yearlyPicker = document.getElementById('yearly-month-picker');
   document.querySelectorAll('input[name="recurrence"]').forEach(r => {
     r.checked = r.value === (todo ? (todo.recurrence || 'none') : 'none');
+    r.onchange = () => yearlyPicker.classList.toggle('visible', r.value === 'yearly');
+  });
+  yearlyPicker.classList.toggle('visible', todo?.recurrence === 'yearly');
+
+  const savedMonth = todo?.yearlyMonth || 1;
+  document.querySelectorAll('input[name="yearly-month"]').forEach(r => {
+    r.checked = Number(r.value) === savedMonth;
   });
 
   modalOverlay.classList.add('open');
@@ -382,6 +401,9 @@ function saveTask() {
 
   const description  = inputDesc.value.trim();
   const recurrence   = document.querySelector('input[name="recurrence"]:checked')?.value || 'none';
+  const yearlyMonth  = recurrence === 'yearly'
+    ? Number(document.querySelector('input[name="yearly-month"]:checked')?.value || 1)
+    : null;
   const subtasksFromForm = [...subtaskInputs.querySelectorAll('li.subtask-input-item')]
     .map(li => ({
       text: li.querySelector('input[type="text"]').value.trim(),
@@ -392,9 +414,10 @@ function saveTask() {
   if (editingId) {
     const todo = todos.find(t => t.id === editingId);
     if (todo) {
-      todo.title       = title;
-      todo.description = description;
-      todo.recurrence  = recurrence;
+      todo.title        = title;
+      todo.description  = description;
+      todo.recurrence   = recurrence;
+      todo.yearlyMonth  = yearlyMonth;
 
       // Preserve done state for subtasks with the same text; update victoryCondition
       const existingByText = {};
@@ -414,6 +437,7 @@ function saveTask() {
       title,
       description,
       recurrence,
+      yearlyMonth,
       lastResetAt: now,
       subtasks:    subtasksFromForm.map(({ text, victoryCondition }) =>
                      ({ id: generateId(), text, victoryCondition, done: false })
@@ -535,9 +559,6 @@ document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape' && modalOverlay.classList.contains('open')) e.preventDefault();
 });
 
-inputTitle.addEventListener('keydown', (e) => {
-  if (e.key === 'Enter') saveTask();
-});
 
 // Initial render
 renderCards();
