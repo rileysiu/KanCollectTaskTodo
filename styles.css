@@ -18,7 +18,7 @@
 
 body {
   font-family: 'Noto Sans TC', 'PingFang TC', 'Microsoft JhengHei', sans-serif;
-  background: var(--bg);
+  background: var(--bg) url('PC_wallpaper_202107.png') center / cover no-repeat fixed;
   color: var(--primary);
   min-height: 100vh;
 }

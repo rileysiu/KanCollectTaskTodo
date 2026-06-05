@@ -53,6 +53,21 @@ function getResetBoundaryUtc(recurrence) {
     if (twFirst.getTime() > tw.getTime()) twFirst.setUTCMonth(twFirst.getUTCMonth() - 1);
     return twFirst.getTime() - 8 * 3600 * 1000;
   }
+  if (recurrence === 'quarterly') {
+    const twQ = new Date(tw);
+    const m = twQ.getUTCMonth();
+    let qStart;
+    if (m >= 11)     { qStart = 11; }
+    else if (m >= 8) { qStart = 8; }
+    else if (m >= 5) { qStart = 5; }
+    else if (m >= 2) { qStart = 2; }
+    else             { qStart = 11; twQ.setUTCFullYear(twQ.getUTCFullYear() - 1); }
+    twQ.setUTCMonth(qStart);
+    twQ.setUTCDate(1);
+    twQ.setUTCHours(4, 0, 0, 0);
+    if (twQ.getTime() > tw.getTime()) twQ.setUTCMonth(twQ.getUTCMonth() - 3);
+    return twQ.getTime() - 8 * 3600 * 1000;
+  }
   return null;
 }
 
@@ -86,7 +101,16 @@ const cardGrid = document.getElementById('card-grid');
 
 function renderCards() {
   cardGrid.innerHTML = '';
-  let sorted = [...todos].sort((a, b) => a.order - b.order);
+
+  const isAllDone = t => t.subtasks && t.subtasks.length > 0 && t.subtasks.every(s => s.done);
+  const isDaily   = t => t.recurrence === 'daily';
+  const byCreated = (a, b) => b.createdAt - a.createdAt;
+
+  // Group A: 每日且未全完成 → 最前；Group B: 其餘未全完成 → 建立時間倒序；Group C: 全完成 → 最後
+  const groupA = todos.filter(t => !isAllDone(t) &&  isDaily(t)).sort(byCreated);
+  const groupB = todos.filter(t => !isAllDone(t) && !isDaily(t)).sort(byCreated);
+  const groupC = todos.filter(t =>  isAllDone(t))               .sort(byCreated);
+  let sorted = [...groupA, ...groupB, ...groupC];
 
   if (selectedSubtasks.size > 0) {
     const matches = t => (t.subtasks || []).some(s => selectedSubtasks.has(s.text));
@@ -121,7 +145,7 @@ function createCardElement(todo) {
   title.appendChild(titleText);
 
   if (todo.recurrence && todo.recurrence !== 'none') {
-    const RMAP = { daily: '每日', weekly: '每週', monthly: '每月' };
+    const RMAP = { daily: '每日', weekly: '每週', monthly: '每月', quarterly: '每季' };
     const rbadge = document.createElement('span');
     rbadge.className = 'recurrence-badge';
     rbadge.textContent = RMAP[todo.recurrence] || '';
