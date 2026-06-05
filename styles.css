@@ -200,10 +200,8 @@ main {
   border-radius: var(--radius);
   box-shadow: var(--shadow);
   padding: 20px;
-  cursor: grab;
   transition: box-shadow 0.2s, transform 0.2s;
   border: 2px solid transparent;
-  user-select: none;
   display: flex;
   flex-direction: column;
 }
@@ -213,14 +211,6 @@ main {
   transform: translateY(-2px);
 }
 
-.card.dragging {
-  opacity: 0.5;
-  cursor: grabbing;
-}
-
-.card.drag-over {
-  border-left: 4px solid var(--accent2);
-}
 
 .card-title {
   font-size: 23px;

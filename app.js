@@ -90,8 +90,7 @@ function checkRecurringResets() {
 // App state
 let todos = loadTodos();
 checkRecurringResets();
-let editingId  = null;
-let draggingId = null;
+let editingId = null;
 const selectedSubtasks = new Set();
 
 // ════════════════════════════════════════
@@ -103,14 +102,17 @@ function renderCards() {
   cardGrid.innerHTML = '';
 
   const isAllDone = t => t.subtasks && t.subtasks.length > 0 && t.subtasks.every(s => s.done);
-  const isDaily   = t => t.recurrence === 'daily';
   const byCreated = (a, b) => b.createdAt - a.createdAt;
 
-  // Group A: 每日且未全完成 → 最前；Group B: 其餘未全完成 → 建立時間倒序；Group C: 全完成 → 最後
-  const groupA = todos.filter(t => !isAllDone(t) &&  isDaily(t)).sort(byCreated);
-  const groupB = todos.filter(t => !isAllDone(t) && !isDaily(t)).sort(byCreated);
-  const groupC = todos.filter(t =>  isAllDone(t))               .sort(byCreated);
-  let sorted = [...groupA, ...groupB, ...groupC];
+  // 未全完成：每日→每週→每月→每季→無循環，各組內建立時間倒序；全完成排最後
+  const rec = r => t => !isAllDone(t) && t.recurrence === r;
+  const groupDaily     = todos.filter(rec('daily'))    .sort(byCreated);
+  const groupWeekly    = todos.filter(rec('weekly'))   .sort(byCreated);
+  const groupMonthly   = todos.filter(rec('monthly'))  .sort(byCreated);
+  const groupQuarterly = todos.filter(rec('quarterly')).sort(byCreated);
+  const groupOther     = todos.filter(t => !isAllDone(t) && !['daily','weekly','monthly','quarterly'].includes(t.recurrence)).sort(byCreated);
+  const groupDone      = todos.filter(t =>  isAllDone(t)).sort(byCreated);
+  let sorted = [...groupDaily, ...groupWeekly, ...groupMonthly, ...groupQuarterly, ...groupOther, ...groupDone];
 
   if (selectedSubtasks.size > 0) {
     const matches = t => (t.subtasks || []).some(s => selectedSubtasks.has(s.text));
@@ -133,7 +135,6 @@ function createCardElement(todo) {
   const card = document.createElement('div');
   card.className = 'card';
   card.dataset.id = todo.id;
-  card.draggable = true;
 
   // Title row (text + optional recurrence badge)
   const title = document.createElement('div');
@@ -191,13 +192,6 @@ function createCardElement(todo) {
   actions.appendChild(btnDelete);
   actions.appendChild(btnEdit);
   card.appendChild(actions);
-
-  // Drag events
-  card.addEventListener('dragstart', onDragStart);
-  card.addEventListener('dragover',  onDragOver);
-  card.addEventListener('dragleave', onDragLeave);
-  card.addEventListener('drop',      onDrop);
-  card.addEventListener('dragend',   onDragEnd);
 
   return card;
 }
@@ -286,55 +280,12 @@ function toggleSubtask(todoId, subId, done) {
   const sub = todo.subtasks.find(s => s.id === subId);
   if (!sub) return;
   sub.done = done;
+  todo.subtasks = [...todo.subtasks.filter(s => !s.done), ...todo.subtasks.filter(s => s.done)];
   saveTodos(todos);
   renderCards();
 }
 
-// ════════════════════════════════════════
-// Drag & Drop
-// ════════════════════════════════════════
-function onDragStart(e) {
-  draggingId = e.currentTarget.dataset.id;
-  e.currentTarget.classList.add('dragging');
-  e.dataTransfer.effectAllowed = 'move';
-}
 
-function onDragOver(e) {
-  e.preventDefault();
-  e.dataTransfer.dropEffect = 'move';
-  if (e.currentTarget.dataset.id !== draggingId) {
-    e.currentTarget.classList.add('drag-over');
-  }
-}
-
-function onDragLeave(e) {
-  e.currentTarget.classList.remove('drag-over');
-}
-
-function onDrop(e) {
-  e.preventDefault();
-  const targetId = e.currentTarget.dataset.id;
-  e.currentTarget.classList.remove('drag-over');
-
-  if (!draggingId || draggingId === targetId) return;
-
-  const draggingTodo = todos.find(t => t.id === draggingId);
-  const targetTodo   = todos.find(t => t.id === targetId);
-  if (!draggingTodo || !targetTodo) return;
-
-  const tmp           = draggingTodo.order;
-  draggingTodo.order  = targetTodo.order;
-  targetTodo.order    = tmp;
-
-  saveTodos(todos);
-  renderCards();
-}
-
-function onDragEnd(e) {
-  e.currentTarget.classList.remove('dragging');
-  document.querySelectorAll('.card').forEach(c => c.classList.remove('drag-over'));
-  draggingId = null;
-}
 
 // ════════════════════════════════════════
 // Modal
@@ -580,12 +531,8 @@ document.getElementById('btn-add-subtask') .addEventListener('click', () => addS
 document.getElementById('btn-save')        .addEventListener('click', saveTask);
 document.getElementById('btn-cancel')      .addEventListener('click', closeModal);
 
-modalOverlay.addEventListener('click', (e) => {
-  if (e.target === modalOverlay) closeModal();
-});
-
 document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape' && modalOverlay.classList.contains('open')) closeModal();
+  if (e.key === 'Escape' && modalOverlay.classList.contains('open')) e.preventDefault();
 });
 
 inputTitle.addEventListener('keydown', (e) => {
@@ -594,3 +541,9 @@ inputTitle.addEventListener('keydown', (e) => {
 
 // Initial render
 renderCards();
+
+// Background check: trigger recurrence resets without requiring page refresh
+setInterval(() => {
+  checkRecurringResets();
+  renderCards();
+}, 60 * 1000);
