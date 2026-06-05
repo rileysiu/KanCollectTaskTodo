@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>待辦清單</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <header>
+    <h1>任務名稱</h1>
+    <div id="search-container">
+      <div id="search-badges"></div>
+      <input type="text" id="search-input" placeholder="篩選出擊地點" autocomplete="off">
+      <ul id="search-dropdown" hidden></ul>
+    </div>
+    <button class="btn-add" id="btn-new-task">＋ 新增任務</button>
+  </header>
+
+  <main>
+    <div id="card-grid"></div>
+  </main>
+
+  <div id="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <div class="modal-panel">
+      <h2 class="modal-title" id="modal-title">新增任務</h2>
+
+      <div class="form-group">
+        <label for="input-title">標題 <span style="color:var(--danger)">*</span></label>
+        <input type="text" id="input-title" placeholder="輸入任務標題" autocomplete="off">
+        <div class="error-msg" id="title-error">標題不可為空</div>
+      </div>
+
+      <div class="form-group">
+        <label>循環週期</label>
+        <div class="recurrence-group">
+          <label><input type="radio" name="recurrence" value="none" checked> 不重複</label>
+          <label><input type="radio" name="recurrence" value="daily"> 每日</label>
+          <label><input type="radio" name="recurrence" value="weekly"> 每週</label>
+          <label><input type="radio" name="recurrence" value="monthly"> 每月</label>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="input-desc">編成</label>
+        <textarea id="input-desc" rows="3" placeholder="輸入編成描述（選填）"></textarea>
+      </div>
+
+      <div id="subtask-editor">
+        <label>出擊地點</label>
+        <ul id="subtask-inputs"></ul>
+        <button type="button" class="btn-add-subtask" id="btn-add-subtask">＋ 新增出擊地點</button>
+      </div>
+
+      <div class="modal-actions">
+        <button type="button" class="btn-cancel" id="btn-cancel">取消</button>
+        <button type="button" class="btn-save" id="btn-save">儲存</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
