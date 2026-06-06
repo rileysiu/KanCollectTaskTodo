@@ -125,14 +125,17 @@ function renderCards() {
 
   if (selectedSubtasks.size > 0) {
     const matches = t => (t.subtasks || []).some(s => selectedSubtasks.has(s.text));
-    sorted = [...sorted.filter(matches), ...sorted.filter(t => !matches(t))];
+    sorted = sorted.filter(matches);
   }
 
   if (sorted.length === 0) {
+    const msg = selectedSubtasks.size > 0
+      ? ['沒有符合篩選條件的任務', '請調整篩選條件或清除篩選']
+      : ['目前沒有任何任務', '點擊右上角「新增任務」開始吧！'];
     cardGrid.innerHTML = `
       <div class="empty-state">
-        <p>目前沒有任何任務</p>
-        <small>點擊右上角「新增任務」開始吧！</small>
+        <p>${msg[0]}</p>
+        <small>${msg[1]}</small>
       </div>`;
     return;
   }
@@ -142,7 +145,8 @@ function renderCards() {
 
 function createCardElement(todo) {
   const card = document.createElement('div');
-  card.className = 'card';
+  const allDone = todo.subtasks && todo.subtasks.length > 0 && todo.subtasks.every(s => s.done);
+  card.className = 'card' + (allDone ? ' card-done' : '');
   card.dataset.id = todo.id;
 
   // Title row (text + optional recurrence badge)
@@ -155,11 +159,11 @@ function createCardElement(todo) {
   title.appendChild(titleText);
 
   if (todo.recurrence && todo.recurrence !== 'none') {
-    const RMAP = { daily: '每日', weekly: '每週', monthly: '每月', quarterly: '每季' };
+    const RMAP = { daily: '日', weekly: '週', monthly: '月', quarterly: '季' };
     const rbadge = document.createElement('span');
-    rbadge.className = 'recurrence-badge';
+    rbadge.className = `recurrence-badge recurrence-badge--${todo.recurrence}`;
     rbadge.textContent = todo.recurrence === 'yearly'
-      ? `每年 ${todo.yearlyMonth || 1}月`
+      ? `年 ${todo.yearlyMonth || 1}`
       : (RMAP[todo.recurrence] || '');
     title.appendChild(rbadge);
   }
@@ -259,7 +263,7 @@ function buildSubtaskList(todo) {
     if (sub.victoryCondition) {
       const VMAP = { S: 'S勝', A: 'A勝', port: '母港到達' };
       const vBadge = document.createElement('span');
-      vBadge.className = 'victory-badge';
+      vBadge.className = `victory-badge victory-badge--${sub.victoryCondition}`;
       vBadge.style.marginLeft = '6px';
       vBadge.textContent = VMAP[sub.victoryCondition] || '';
       li.appendChild(vBadge);

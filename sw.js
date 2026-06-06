@@ -1,5 +1,5 @@
-const CACHE = 'kancollect-2026-06-06';
-const ASSETS = ['./','./index.html','./app.js','./styles.css','./PC_wallpaper_202107.png'];
+const CACHE = 'kancollect-2026-06-06-b';
+const ASSETS = ['./','./index.html','./app.js','./styles.css','./wallpaper.jpg'];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)));
