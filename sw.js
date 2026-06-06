@@ -1,4 +1,4 @@
-const CACHE = 'kancollect-2026-06-06-b';
+const CACHE = 'kancollect-2026-06-06-c';
 const ASSETS = ['./','./index.html','./app.js','./styles.css','./wallpaper.jpg'];
 
 self.addEventListener('install', e => {

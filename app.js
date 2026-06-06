@@ -162,10 +162,12 @@ function createCardElement(todo) {
     const RMAP = { daily: '日', weekly: '週', monthly: '月', quarterly: '季' };
     const rbadge = document.createElement('span');
     rbadge.className = `recurrence-badge recurrence-badge--${todo.recurrence}`;
-    rbadge.textContent = todo.recurrence === 'yearly'
-      ? `年 ${todo.yearlyMonth || 1}`
-      : (RMAP[todo.recurrence] || '');
-    title.appendChild(rbadge);
+    if (todo.recurrence === 'yearly') {
+      rbadge.innerHTML = `<span>年</span><span>${todo.yearlyMonth || 1}</span>`;
+    } else {
+      rbadge.textContent = RMAP[todo.recurrence] || '';
+    }
+    card.appendChild(rbadge);
   }
 
   card.appendChild(title);
@@ -543,6 +545,14 @@ searchInput.addEventListener('focus', () => {
 searchInput.addEventListener('input', () => {
   renderDropdown();
   searchDropdown.hidden = false;
+});
+
+searchInput.addEventListener('keydown', (e) => {
+  if (e.key !== 'Enter') return;
+  e.preventDefault();
+  const first = searchDropdown.querySelector('.dropdown-item');
+  if (!first) return;
+  first.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
 });
 
 searchInput.addEventListener('blur', () => {
