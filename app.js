@@ -452,6 +452,7 @@ function saveTask() {
         }
         return { id: generateId(), text, victoryCondition, done: false };
       });
+      todo.subtasks = [...todo.subtasks.filter(s => !s.done), ...todo.subtasks.filter(s => s.done)];
     }
   } else {
     const now = Date.now();
