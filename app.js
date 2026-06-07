@@ -425,15 +425,15 @@ function saveTask() {
       todo.recurrence   = recurrence;
       todo.yearlyMonth  = yearlyMonth;
 
-      // Preserve done state for subtasks with the same text; update victoryCondition
-      const existingByText = {};
-      (todo.subtasks || []).forEach(s => { existingByText[s.text] = s; });
-
+      // Preserve done state for subtasks with matching text; each existing entry consumed once
+      const pool = [...(todo.subtasks || [])];
       todo.subtasks = subtasksFromForm.map(({ text, victoryCondition }) => {
-        const existing = existingByText[text];
-        return existing
-          ? { ...existing, victoryCondition }
-          : { id: generateId(), text, victoryCondition, done: false };
+        const idx = pool.findIndex(s => s.text === text);
+        if (idx !== -1) {
+          const existing = pool.splice(idx, 1)[0];
+          return { ...existing, victoryCondition };
+        }
+        return { id: generateId(), text, victoryCondition, done: false };
       });
     }
   } else {
