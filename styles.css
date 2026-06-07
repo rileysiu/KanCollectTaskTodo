@@ -269,6 +269,7 @@ main {
 .card-title-text {
   word-break: break-word;
   min-width: 0;
+  max-width: 17em;
 }
 
 .card-desc {
@@ -362,6 +363,9 @@ main {
 .btn-edit:hover  { background: #dde3fd; }
 .btn-delete { background: #fdeaea; color: var(--danger); }
 .btn-delete:hover { background: #f9d0d0; }
+
+.card-done .btn-edit   { display: none; }
+.card-done .btn-delete { position: relative; z-index: 1; }
 
 /* ── Empty state ── */
 .empty-state {

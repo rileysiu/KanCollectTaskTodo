@@ -124,7 +124,7 @@ function renderCards() {
   let sorted = [...groupDaily, ...groupWeekly, ...groupMonthly, ...groupQuarterly, ...groupYearly, ...groupOther, ...groupDone];
 
   if (selectedSubtasks.size > 0) {
-    const matches = t => (t.subtasks || []).some(s => selectedSubtasks.has(s.text));
+    const matches = t => !isAllDone(t) && (t.subtasks || []).some(s => selectedSubtasks.has(s.text));
     sorted = sorted.filter(matches);
   }
 
@@ -548,6 +548,14 @@ searchInput.addEventListener('input', () => {
 });
 
 searchInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Backspace' && searchInput.value === '' && selectedSubtasks.size > 0) {
+    const last = [...selectedSubtasks].at(-1);
+    selectedSubtasks.delete(last);
+    renderSearchBadges();
+    renderDropdown();
+    renderCards();
+    return;
+  }
   if (e.key !== 'Enter') return;
   e.preventDefault();
   const first = searchDropdown.querySelector('.dropdown-item');
