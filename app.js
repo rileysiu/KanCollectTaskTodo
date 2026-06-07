@@ -95,8 +95,25 @@ function checkRecurringResets() {
   if (changed) saveTodos(todos);
 }
 
+function deduplicateSubtaskIds(todos) {
+  const seen = new Set();
+  let changed = false;
+  todos.forEach(todo => {
+    (todo.subtasks || []).forEach(sub => {
+      if (seen.has(sub.id)) {
+        sub.id = generateId();
+        changed = true;
+      } else {
+        seen.add(sub.id);
+      }
+    });
+  });
+  return changed;
+}
+
 // App state
 let todos = loadTodos();
+if (deduplicateSubtaskIds(todos)) saveTodos(todos);
 checkRecurringResets();
 let editingId = null;
 const selectedSubtasks = new Set();
