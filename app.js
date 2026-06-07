@@ -141,7 +141,7 @@ function renderCards() {
   let sorted = [...groupDaily, ...groupWeekly, ...groupMonthly, ...groupQuarterly, ...groupYearly, ...groupOther, ...groupDone];
 
   if (selectedSubtasks.size > 0) {
-    const matches = t => !isAllDone(t) && (t.subtasks || []).some(s => selectedSubtasks.has(s.text));
+    const matches = t => !isAllDone(t) && (t.subtasks || []).some(s => !s.done && selectedSubtasks.has(s.text));
     sorted = sorted.filter(matches);
   }
 
