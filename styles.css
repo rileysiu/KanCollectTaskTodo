@@ -269,7 +269,7 @@ main {
 .card-title-text {
   word-break: break-word;
   min-width: 0;
-  max-width: 17em;
+  max-width: 15em;
 }
 
 .card-desc {
