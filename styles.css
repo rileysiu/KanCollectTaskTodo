@@ -271,7 +271,7 @@ main {
   word-break: break-word;
   flex: 1 1 0;
   min-width: 0;
-  max-width: 15em;
+  max-width: 12em;
 }
 
 .card-desc {
