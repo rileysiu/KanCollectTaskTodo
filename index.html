@@ -24,6 +24,20 @@
       <ul id="search-dropdown" hidden></ul>
     </div>
     <button class="btn-add" id="btn-new-task">＋ 新增任務</button>
+
+    <div id="backup-container">
+      <button class="btn-backup" id="btn-export-json">匯出</button>
+      <button class="btn-backup" id="btn-import-json">匯入</button>
+      <input type="file" id="import-file-input" accept="application/json" hidden>
+    </div>
+
+    <div id="auth-container">
+      <button class="btn-google-signin" id="btn-google-signin">使用 Google 登入</button>
+      <div id="auth-user-info" hidden>
+        <span id="auth-user-email"></span>
+        <button class="btn-signout" id="btn-signout">登出</button>
+      </div>
+    </div>
   </header>
 
   <main>
@@ -87,6 +101,7 @@
     </div>
   </div>
 
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

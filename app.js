@@ -3,6 +3,17 @@
 // ════════════════════════════════════════
 const STORAGE_KEY = 'todos';
 
+// ── Supabase (Google 登入同步) ──
+const SUPABASE_URL = 'https://zckpwwtrydxiccuykbra.supabase.co';
+const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_LfGghuReKGkLIcD44bssEw_Q5GOosUU';
+const TODOS_TABLE = 'todos_sync';
+
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+
+let currentUser = null;
+let realtimeChannel = null;
+let saveDebounceTimer = null;
+
 function loadTodos() {
   try {
     return JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
@@ -11,8 +22,22 @@ function loadTodos() {
   }
 }
 
+async function upsertCloudTodos(userId, todosArr) {
+  const { error } = await sb.from(TODOS_TABLE).upsert({
+    user_id: userId,
+    data: todosArr,
+    updated_at: new Date().toISOString(),
+  });
+  if (error) console.error('雲端儲存失敗', error);
+}
+
 function saveTodos(todos) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(todos));
+  if (currentUser) {
+    clearTimeout(saveDebounceTimer);
+    saveDebounceTimer = setTimeout(() => upsertCloudTodos(currentUser.id, todos), 300);
+  } else {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(todos));
+  }
 }
 
 function generateId() {
@@ -117,6 +142,97 @@ if (deduplicateSubtaskIds(todos)) saveTodos(todos);
 checkRecurringResets();
 let editingId = null;
 const selectedSubtasks = new Set();
+
+// ════════════════════════════════════════
+// Cloud sync (Google 登入)
+// ════════════════════════════════════════
+async function fetchCloudTodos(userId) {
+  const { data, error } = await sb
+    .from(TODOS_TABLE)
+    .select('data')
+    .eq('user_id', userId)
+    .maybeSingle();
+  if (error) {
+    console.error('讀取雲端資料失敗', error);
+    return null;
+  }
+  return data ? data.data : null;
+}
+
+async function migrateOrFetchCloud(userId) {
+  const cloudTodos = await fetchCloudTodos(userId);
+  if (cloudTodos === null) {
+    await upsertCloudTodos(userId, todos);
+  } else {
+    todos = cloudTodos;
+  }
+  deduplicateSubtaskIds(todos);
+  checkRecurringResets();
+  renderCards();
+  subscribeRealtime(userId);
+}
+
+function subscribeRealtime(userId) {
+  unsubscribeRealtime();
+  realtimeChannel = sb.channel('todos_sync_' + userId)
+    .on('postgres_changes',
+      { event: 'UPDATE', schema: 'public', table: TODOS_TABLE, filter: `user_id=eq.${userId}` },
+      (payload) => {
+        console.log('Realtime 收到變更', payload);
+        todos = payload.new.data;
+        deduplicateSubtaskIds(todos);
+        checkRecurringResets();
+        renderCards();
+      })
+    .subscribe((status, err) => {
+      if (err) console.error('Realtime 訂閱錯誤', status, err);
+      else console.log('Realtime 訂閱狀態', status);
+    });
+}
+
+function unsubscribeRealtime() {
+  if (realtimeChannel) {
+    sb.removeChannel(realtimeChannel);
+    realtimeChannel = null;
+  }
+}
+
+function updateAuthUI(user) {
+  const signInBtn     = document.getElementById('btn-google-signin');
+  const signedInBlock = document.getElementById('auth-user-info');
+  const emailEl        = document.getElementById('auth-user-email');
+  signInBtn.hidden     = !!user;
+  signedInBlock.hidden = !user;
+  emailEl.textContent  = user ? (user.email || '') : '';
+}
+
+sb.auth.onAuthStateChange((event, session) => {
+  if (session?.user) {
+    if (currentUser?.id === session.user.id) return; // 同一個 session 的重複事件（如 TOKEN_REFRESHED），避免重跑一次
+    currentUser = session.user;
+    updateAuthUI(currentUser);
+    migrateOrFetchCloud(currentUser.id);
+  } else if (event === 'SIGNED_OUT') {
+    currentUser = null;
+    unsubscribeRealtime();
+    todos = loadTodos();
+    deduplicateSubtaskIds(todos);
+    checkRecurringResets();
+    renderCards();
+    updateAuthUI(null);
+  }
+});
+
+document.getElementById('btn-google-signin').addEventListener('click', () => {
+  sb.auth.signInWithOAuth({
+    provider: 'google',
+    options: { redirectTo: window.location.origin + window.location.pathname },
+  });
+});
+
+document.getElementById('btn-signout').addEventListener('click', () => {
+  sb.auth.signOut();
+});
 
 // ════════════════════════════════════════
 // Render
@@ -597,6 +713,53 @@ document.getElementById('btn-cancel')      .addEventListener('click', closeModal
 
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape' && modalOverlay.classList.contains('open')) e.preventDefault();
+});
+
+// ── Export / Import ──
+document.getElementById('btn-export-json').addEventListener('click', () => {
+  const blob = new Blob([JSON.stringify(todos, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `kancollect-todos-${new Date().toISOString().slice(0, 10)}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+});
+
+const importFileInput = document.getElementById('import-file-input');
+
+document.getElementById('btn-import-json').addEventListener('click', () => {
+  importFileInput.click();
+});
+
+importFileInput.addEventListener('change', () => {
+  const file = importFileInput.files[0];
+  importFileInput.value = '';
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = () => {
+    let imported;
+    try {
+      imported = JSON.parse(reader.result);
+    } catch {
+      alert('檔案格式錯誤，無法匯入');
+      return;
+    }
+    if (!Array.isArray(imported)) {
+      alert('檔案格式錯誤，無法匯入');
+      return;
+    }
+    if (!confirm('匯入將會覆蓋目前所有任務，確定要繼續嗎？')) return;
+
+    todos = imported;
+    deduplicateSubtaskIds(todos);
+    reorderTodos(todos);
+    checkRecurringResets();
+    saveTodos(todos);
+    renderCards();
+  };
+  reader.readAsText(file);
 });
 
 

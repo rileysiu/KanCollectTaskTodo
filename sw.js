@@ -1,4 +1,4 @@
-const CACHE = 'kancollect-2026-07-12-e';
+const CACHE = 'kancollect-2026-07-13-a';
 const ASSETS = ['./','./index.html','./app.js','./styles.css','./wallpaper.jpg'];
 
 self.addEventListener('install', e => {
@@ -14,6 +14,7 @@ self.addEventListener('activate', e => {
 });
 
 self.addEventListener('fetch', e => {
+  if (e.request.method !== 'GET' || new URL(e.request.url).origin !== self.location.origin) return;
   e.respondWith(fetch(e.request).then(res => {
     const clone = res.clone();
     caches.open(CACHE).then(c => c.put(e.request, clone));
