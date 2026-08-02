@@ -1,0 +1,20 @@
+name: Keep Supabase Alive
+
+on:
+  schedule:
+    - cron: '0 3 * * 0,3'   # 每週日、週三 03:00 UTC，間隔最多 4 天，遠低於 7 天閒置門檻
+  workflow_dispatch: {}       # 允許手動觸發，方便測試
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Supabase REST API
+        run: |
+          status=$(curl -s -o /dev/null -w "%{http_code}" \
+            "https://zckpwwtrydxiccuykbra.supabase.co/rest/v1/todos_sync?select=user_id&limit=1" \
+            -H "apikey: sb_publishable_LfGghuReKGkLIcD44bssEw_Q5GOosUU")
+          echo "HTTP status: $status"
+          if [ "$status" -lt 200 ] || [ "$status" -ge 300 ]; then
+            echo "Ping failed"; exit 1
+          fi
